@@ -16,6 +16,7 @@ import matplotlib
 matplotlib.use('agg')   # Do not try to show any figures
 
 import os
+import wfdb
 import warnings
 import numpy as np
 from copy import deepcopy
@@ -224,8 +225,11 @@ def prepare_for_dnn(X, y, z_score_normalise=True):
     if z_score_normalise:
         X = normalise_templates(X)
     X_cnn = X.reshape(X.shape + (1,))
-    y_cnn = np.asarray(y, dtype='float') # Removed from evaluation model, reserted.
-    return X_cnn, y_cnn
+
+    # Use LabelEncoder to convert string labels to integer indices
+    label_encoder = LabelEncoder()
+    y_cnn = label_encoder.fit_transform(y)
+    return X_cnn, y_cnn, label_encoder
 
 
 
