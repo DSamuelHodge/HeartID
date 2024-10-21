@@ -16,7 +16,7 @@ import aux_functions as af
 
 N_TRAIN = 100000   # Number of triplets for the train set
 N_TEST = 10000     # Number of triplets for the test set
-ECGID_PATH = '/content/HeartID/ecgiddb/1.0.0'  # Path to ECG-ID database
+ECGID_PATH = '/content/physionet.org/files/ecgiddb/1.0.0'  # Path to ECG-ID database
 SAVE_TRAIN = 'ecg_train_data.pickle'
 SAVE_TEST = 'ecg_test_data.pickle'
 fs = 500.0  # Sampling frequency of ECG-ID data
