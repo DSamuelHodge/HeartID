@@ -61,36 +61,34 @@ def getSegments_ecgid(database_path, subjects, length, step):
 
 
 def extract_data_ecgid(database_path, subjects, fs=500.0):
-    no_templ = 26  # To reserve first 30 seconds for anchors
+    segment_length = int(fs * 5)  # 5-second segments
+    step = int(fs * 1)  # 1-second step
+    no_templ = 2  # Reserve first 2 segments (10 seconds) for anchors
 
-    data = getSegments_ecgid(database_path, subjects, int(fs * 5), int(fs * 1))
-
+    data = getSegments_ecgid(database_path, subjects, segment_length, step)
     data_train_x = []
     data_train_y = []
-    data_test_x = []
-    data_test_y = []
-    train_subs = {}
-    test_subs = {}
+    data_remaining_x = []
+    data_remaining_y = []
 
-    for kk in range(len(data['labels'])):
-        person = data['labels'][kk]
-        if person not in train_subs:
-            train_subs[person] = 0
-            test_subs[person] = 0
-        
-        if train_subs[person] < no_templ:
-            data_train_x.append(data['segments'][kk])
-            data_train_y.append(person)
-            train_subs[person] += 1
-        elif test_subs[person] >= no_templ + 4:
-            data_test_x.append(data['segments'][kk])
-            data_test_y.append(person)
-        test_subs[person] += 1
+    for person in set(data['labels']):
+        person_segments = [seg for seg, label in zip(data['segments'], data['labels']) if label == person]
+        person_segments = np.array(person_segments)
 
-    train_x = np.array(data_train_x)
-    test_x = np.array(data_test_x)
+        # Use first 'no_templ' segments as anchors
+        data_train_x.extend(person_segments[:no_templ])
+        data_train_y.extend([person] * no_templ)
 
-    return {'X_anchors': train_x, 'y_anchors': data_train_y, 'X_remaining': test_x, 'y_remaining': data_test_y}
+        # Use remaining segments for the remaining set
+        data_remaining_x.extend(person_segments[no_templ:])
+        data_remaining_y.extend([person] * (len(person_segments) - no_templ))
+
+    return {
+        'X_anchors': np.array(data_train_x), 
+        'y_anchors': data_train_y, 
+        'X_remaining': np.array(data_remaining_x), 
+        'y_remaining': data_remaining_y
+    }
 
 
 def segment_ecg(signal, annotations, segment_length=SEGMENT_LENGTH):
