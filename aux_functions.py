@@ -16,82 +16,31 @@ import matplotlib
 matplotlib.use('agg')   # Do not try to show any figures
 
 import os
-import cv2
 import warnings
 import numpy as np
-from PIL import Image
 from copy import deepcopy
 from matplotlib import pyplot as pl
 from sklearn.preprocessing import normalize
 
 
-# AUXILIARY FUNCTIONS FOR THE FACE DATA
-
-def process_image(origin, destination, id_name):
-    # Used to open images and store them, prepared to be used,
-    # in the destination directory.
-    img_name = os.path.basename(origin)
-    out_path = os.path.join(destination, id_name + '_' + img_name)
-    if os.path.exists(out_path):
-        return out_path
-    else:
-        img = Image.open(origin)
-        shp = img.size
-        img = np.array(img)[int(0.15*shp[0]):int(0.85*shp[0]), int(0.15*shp[1]):int(0.85*shp[1])]
-        img = cv2.resize(img, (160, 160), interpolation=cv2.INTER_AREA)
-        img = Image.fromarray(img)
-        img.save(out_path)
-        return out_path
-
-def generate_id_triplets(identity, db_dir, save_dir, all_identities, n_triplets=100):
-    # Generates n triplets for a given identity.
-    triplets = list()
-    id_dir = os.path.join(db_dir, identity)
-    
-    for nn in range(n_triplets):
-        videos = os.listdir(id_dir)
-        
-        # If there is more than one folder for this ID, take the anchor and
-        # positive images from two different folders:
-        if len(videos) > 1:  
-            a_p_vids = np.random.choice(videos, size=2, replace=False)
-            a_vid_dir = os.path.join(id_dir, a_p_vids[0])
-            anchor = os.path.join(a_vid_dir, np.random.choice(os.listdir(a_vid_dir)))
-            p_vid_dir = os.path.join(id_dir, a_p_vids[1])
-            positive = os.path.join(p_vid_dir, np.random.choice(os.listdir(p_vid_dir)))
-        # Otherwise, choose both images randomly within the same folder:
-        else:
-            video_dir = os.path.join(id_dir, videos[0])
-            frames = os.listdir(video_dir)
-            a_p = np.random.choice(frames, size=2, replace=False)
-            anchor = os.path.join(video_dir, a_p[0])
-            positive = os.path.join(video_dir, a_p[1])
-        
-        # Choosing randomly a negative image, from a different identity:
-        neg_id = np.random.choice(all_identities[np.argwhere(all_identities != identity)[:,0]])
-        neg_id_dir = os.path.join(db_dir, neg_id)
-        neg_vids = os.listdir(neg_id_dir)
-        neg_v = np.random.choice(neg_vids)
-        neg_v_dir = os.path.join(neg_id_dir, neg_v)
-        neg_frames = os.listdir(neg_v_dir)
-        negative = os.path.join(neg_v_dir, np.random.choice(neg_frames))
-
-        # Take the images and process them to be used later:
-        anchor_path = process_image(anchor, save_dir, identity)
-        positive_path = process_image(positive, save_dir, identity)
-        negative_path = process_image(negative, save_dir, neg_id)
-
-        # Generate two keys:
-        keys = np.random.randint(0, high=2, size=(2, 100))
-        key1, key2 = normalize(keys, norm='l2', axis=1)
-
-        # Save the triplets info:
-        triplets.append([anchor_path, positive_path, negative_path, key1, key2])
-    return triplets
-
-
-
 # AUXILIARY FUNCIONS FOR THE ECG DATA
+
+def load_ecg_id_data(record_path):
+    with warnings.catch_warnings():
+      warnings.simplefilter("ignore")
+        record = wfdb.rdrecord(record_path)
+        ann = wfdb.rdann(record_path, 'atr')
+    return record.p_signal[:, 1], ann.sample  # Using the filtered signal
+
+def segment_ecg(signal, annotations, segment_length=SEGMENT_LENGTH):
+    segments = []
+    for ann in annotations:
+        start = max(0, ann - segment_length // 2)
+        end = start + segment_length
+        if end <= len(signal):
+            segment = signal[start:end]
+            segments.append(segment)
+    return np.array(segments)
 
 def load_uoftdb_recording(path, subject, session, filename):
     with warnings.catch_warnings():
