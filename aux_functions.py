@@ -23,13 +23,17 @@ from matplotlib import pyplot as pl
 from sklearn.preprocessing import normalize
 
 
+
+SEGMENT_LENGTH = 1000  # Default segment length (2 seconds at 500 Hz)
+
+
 # AUXILIARY FUNCIONS FOR THE ECG DATA
 
 def load_ecg_id_data(record_path):
     with warnings.catch_warnings():
       warnings.simplefilter("ignore")
-        record = wfdb.rdrecord(record_path)
-        ann = wfdb.rdann(record_path, 'atr')
+      record = wfdb.rdrecord(record_path)
+      ann = wfdb.rdann(record_path, 'atr')
     return record.p_signal[:, 1], ann.sample  # Using the filtered signal
 
 
