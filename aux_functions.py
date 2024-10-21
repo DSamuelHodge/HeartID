@@ -225,11 +225,8 @@ def prepare_for_dnn(X, y, z_score_normalise=True):
     if z_score_normalise:
         X = normalise_templates(X)
     X_cnn = X.reshape(X.shape + (1,))
-
-    # Use LabelEncoder to convert string labels to integer indices
-    label_encoder = LabelEncoder()
-    y_cnn = label_encoder.fit_transform(y)
-    return X_cnn, y_cnn, label_encoder
+    y_cnn = np.array(y, dtype='U')  # 'U' dtype for Unicode strings
+    return X_cnn, y_cnn
 
 
 
