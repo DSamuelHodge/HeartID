@@ -21,7 +21,7 @@ import warnings
 import numpy as np
 from copy import deepcopy
 from matplotlib import pyplot as pl
-from sklearn.preprocessing import normalize
+from sklearn.preprocessing import normalize, LabelEncoder
 
 
 
