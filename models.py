@@ -45,7 +45,7 @@ class SecureECGNetwork(nn.Module):
                                      nn.ReLU(),
                                      nn.MaxPool1d(3, stride=3) )
 
-        self.dropout = nn.Sequential(nn.Dropout(p=dropout_prob=0.5):
+        self.dropout = nn.Sequential(nn.Dropout(p=dropout_prob))
 
         self.fc = nn.Sequential(nn.Linear(420, 100),
                                 nn.ReLU(),
