@@ -32,6 +32,67 @@ def load_ecg_id_data(record_path):
         ann = wfdb.rdann(record_path, 'atr')
     return record.p_signal[:, 1], ann.sample  # Using the filtered signal
 
+
+def load_ecgid_recording(record_path):
+    signal, annotations = load_ecg_id_data(record_path)
+    return {'signal': signal, 'annotations': annotations, 'fs': 500.0}
+
+
+def getSegments_ecgid(database_path, subjects, length, step):
+    segments = []
+    y = []
+    t = []
+
+    for person_folder in os.listdir(database_path):
+        if person_folder.startswith('Person_') and person_folder in subjects:
+            person_path = os.path.join(database_path, person_folder)
+            person_records = [f for f in os.listdir(person_path) if f.endswith('.dat')]
+
+            for record in person_records:
+                record_path = os.path.join(person_path, record[:-4])
+                data = load_ecgid_recording(record_path)
+                
+                for kk in range(0, len(data['signal']) - length, step):
+                    segments.append(data['signal'][kk:kk+length])
+                    y.append(person_folder)
+                    t.append(kk / data['fs'])
+
+    return {'segments': segments, 'labels': y, 'times': t}
+
+
+def extract_data_ecgid(database_path, subjects, fs=500.0):
+    no_templ = 26  # To reserve first 30 seconds for anchors
+
+    data = getSegments_ecgid(database_path, subjects, int(fs * 5), int(fs * 1))
+
+    data_train_x = []
+    data_train_y = []
+    data_test_x = []
+    data_test_y = []
+    train_subs = {}
+    test_subs = {}
+
+    for kk in range(len(data['labels'])):
+        person = data['labels'][kk]
+        if person not in train_subs:
+            train_subs[person] = 0
+            test_subs[person] = 0
+        
+        if train_subs[person] < no_templ:
+            data_train_x.append(data['segments'][kk])
+            data_train_y.append(person)
+            train_subs[person] += 1
+        elif test_subs[person] >= no_templ + 4:
+            data_test_x.append(data['segments'][kk])
+            data_test_y.append(person)
+        test_subs[person] += 1
+
+    train_x = np.array(data_train_x)
+    test_x = np.array(data_test_x)
+
+    return {'X_anchors': train_x, 'y_anchors': data_train_y, 'X_remaining': test_x, 'y_remaining': data_test_y}
+
+
 def segment_ecg(signal, annotations, segment_length=SEGMENT_LENGTH):
     segments = []
     for ann in annotations:
@@ -42,11 +103,17 @@ def segment_ecg(signal, annotations, segment_length=SEGMENT_LENGTH):
             segments.append(segment)
     return np.array(segments)
 
+
 def load_uoftdb_recording(path, subject, session, filename):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         signal = np.loadtxt(path + 'uoftdb_' + subject + '_' + session + '_' + filename + '.txt')
     return {'signal': signal, 'fs': 200.0}
+
+
+def load_ecgid_recording(record_path):
+    signal, annotations = load_ecg_id_data(record_path)
+    return {'signal': signal, 'annotations': annotations, 'fs': 500.0}
 
 
 def getSegments(path, subjects, length, step):
@@ -144,7 +211,10 @@ def normalise_templates(templates):
     for ii in range(len(out)):
         numer = np.subtract(out[ii], np.mean(out[ii]))
         denum = np.std(out[ii])
-        out[ii] = np.divide(numer, denum)
+        if denum != 0:
+            out[ii] = np.divide(numer, denum)
+        else:
+            out[ii] = numer  # If std dev is 0, just subtract mean
     return out
 
 
@@ -152,7 +222,7 @@ def prepare_for_dnn(X, y, z_score_normalise=True):
     if z_score_normalise:
         X = normalise_templates(X)
     X_cnn = X.reshape(X.shape + (1,))
-    y_cnn = np.asarray(y, dtype='float')
+    y_cnn = np.asarray(y, dtype='float') # Removed from evaluation model, reserted.
     return X_cnn, y_cnn
 
 
