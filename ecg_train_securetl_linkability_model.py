@@ -34,13 +34,12 @@ REG = 0            # L2 regularization hyperparameter
 N_EPOCHS = 50
 BATCH_SIZE = 32
 VALID_SPLIT = .2 
-DROPOUT = 0.5
 
 GAMMA = 0.9        # Set the gamma parameter here
 
 # Choose one of the loss functions below:
-loss = SecureTripletLossKLD(margin=1.0, gamma=GAMMA)
-#loss = SecureTripletLossSL(margin=1.0, gamma=GAMMA)
+loss = SecureTripletLossKLD(margin=1.0, gamma=GAMMA) # Kullback-Liebler
+#loss = SecureTripletLossSL(margin=1.0, gamma=GAMMA) # Stastisical 
 
 print('Training model: ' + SAVE_MODEL)
 
