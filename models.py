@@ -29,7 +29,7 @@ class SecureECGNetwork(nn.Module):
     # single biometric sample and a key. Is used with
     # SecureModel for training with Secure Triplet Loss.
 
-    def __init__(self, dropout_prob=0.5):
+    def __init__(self, dropout_prob=0.5): # Dropout is preset at 0.5
         # Defining the structure of the ECG secure network.
         super(SecureECGNetwork, self).__init__()
         self.convnet = nn.Sequential(nn.Conv1d(1, 16, 5),
